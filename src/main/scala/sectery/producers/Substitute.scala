@@ -20,8 +20,9 @@ object Substitute extends Producer:
   def apply(m: Rx): URIO[Clock, Iterable[Tx]] =
     m match
       case Rx(channel, nick, sub(toReplace, withReplace)) =>
-        val msg = mMap.get(channel).flatMap(_.get(nick))
-        val replaced = msg.map(_.replaceAll(toReplace, withReplace))
+        val reg = toReplace.r
+        val msg = mMap.get(channel).flatMap(_.find{ case (nick, msg) => reg.matches(msg) })
+        val replaced = msg.map( (n, m) => s"<${n}> ${m.replaceAll(toReplace, withReplace)}")
         val tx = replaced.map(m => Tx(channel, m))
         ZIO.effectTotal(tx)
       case Rx(channel, nick, msg) =>
